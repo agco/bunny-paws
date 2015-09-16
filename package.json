@@ -1,0 +1,34 @@
+{
+  "name": "amqp-experiments",
+  "version": "0.0.0",
+  "license": "MIT",
+  "author": {
+    "name": "Kristof Sajdak",
+    "email": "kristof.sajdak@gmail.com"
+  },
+  "contributors": [
+    {
+      "name": "Bernard Labno",
+      "email": "bernard.labno@pjwstk.edu.pl"
+    }
+  ],
+  "homepage": "",
+  "private": true,
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "amqplib": "^0.3.2",
+    "bluebird": "^2.10.0"
+  },
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "lodash": "^3.10.1",
+    "mocha": "~1.20.1",
+    "sinon": "^1.16.1",
+    "sinon-chai": "^2.8.0"
+  },
+  "engines": {
+    "node": ">=0.10"
+  }
+}
