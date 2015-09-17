@@ -7,70 +7,72 @@ var chai = require('chai');
 var expect = chai.expect;
 var Promise = require('bluebird');
 chai.use(require('sinon-chai'));
+var libarkaFactory = require('../lib/libarka.js');
 
 var config = require('./config.js');
 
 var queueName = 'tasks';
 
-describe('amqplib', function () {
 
-    function connect(pool) {
-        return amqplib.connect(config.amqp.url).then(function (connection) {
-            pool.connections = pool.connections || [];
-            pool.connections.push(connection);
-            return connection.createChannel();
-        }).then(function (channel) {
-                pool.channels = pool.channels || [];
-                pool.channels.push(channel);
-                return channel;
-            });
-    }
-
-    function connectAsPublisher(pool) {
-        return connect(pool).then(function (channel) {
-            channel.assertQueue(queueName);
+function connect(pool) {
+    return amqplib.connect(config.amqp.url).then(function (connection) {
+        pool.connections = pool.connections || [];
+        pool.connections.push(connection);
+        return connection.createChannel();
+    }).then(function (channel) {
+            pool.channels = pool.channels || [];
+            pool.channels.push(channel);
             return channel;
         });
-    }
+}
 
-    function purge(pool) {
-        return connect(pool).then(function (channel) {
-            return channel.purgeQueue(queueName);
-        },function (err) {
-            console.log(err);
-        }).then(function () {
-                return pool;
-            });
-    }
+function connectAsPublisher(pool) {
+    return connect(pool).then(function (channel) {
+        channel.assertQueue(queueName);
+        return channel;
+    });
+}
 
-    function send(channel) {
-        var messages = _.toArray(arguments);
-        messages.shift();
-        return Promise.all(_.map(messages, function (item) {
-            return channel.sendToQueue(queueName, new Buffer(item));
-        }));
-    }
+function purge(pool) {
+    return connect(pool).then(function (channel) {
+        return channel.purgeQueue(queueName);
+    },function (err) {
+        console.error(err);
+    }).then(function () {
+            return pool;
+        });
+}
 
-    function createPool() {
-        var pool = { channels: [], connections: []};
-        pool.channelClosed = function (channel) {
-            var indexOf = pool.channels.indexOf(channel);
-            if (indexOf > -1) {
-                pool.channels.splice(indexOf, 1);
-            }
-        };
-        return pool;
-    }
+function send(channel) {
+    var messages = _.toArray(arguments);
+    messages.shift();
+    return Promise.all(_.map(messages, function (item) {
+        return channel.sendToQueue(queueName, new Buffer(item));
+    }));
+}
 
-    function cleanupPool(pool) {
-        return Promise.all(_.map(pool.channels, function (channel) {
-                return channel && channel.close();
-            })).then(function () {
-                return Promise.all(_.map(pool.connections, function (connection) {
-                    return connection && connection.close();
-                }));
-            });
-    }
+function createPool() {
+    var pool = { channels: [], connections: []};
+    pool.channelClosed = function (channel) {
+        var indexOf = pool.channels.indexOf(channel);
+        if (indexOf > -1) {
+            pool.channels.splice(indexOf, 1);
+        }
+    };
+    return pool;
+}
+
+function cleanupPool(pool) {
+    return Promise.all(_.map(pool.channels, function (channel) {
+            return channel && channel.close();
+        })).then(function () {
+            return Promise.all(_.map(pool.connections, function (connection) {
+                return connection && connection.close();
+            }));
+        });
+}
+
+describe('amqplib', function () {
 
     describe('ack', function () {
         var consumerChannel;
@@ -158,7 +160,7 @@ describe('amqplib', function () {
                         consumerChannelB = channel;
                         return consumerChannelB.consume(queueName, consumerSpyB);
                     }).then(function () {
-                        return Promise.delay(100);
+                        return Promise.delay(500);
                     });
             });
 
@@ -201,18 +203,57 @@ describe('amqplib', function () {
 
 describe('libarka', function () {
     describe('when message is published', function () {
+        var pool;
+        var consumerSpy;
+        var libarka;
+        beforeEach(function () {
+            pool = createPool();
+            return purge(pool).then(connectAsPublisher).then(function (channel) {
+                return send(channel, 'a');
+            }).then(function () {
+                    consumerSpy = sinon.spy(function (msg) {
+                        if (msg) {
+                            this.ack(msg);
+                        }
+                    });
+                    libarka = libarkaFactory();
+                    return libarka.connect(config.amqp.url).then(function (libarka) {
+                        return libarka.consume(queueName, consumerSpy);
+                    });
+                }).then(function () {
+                    return Promise.delay(100);
+                });
+        });
+        afterEach(function () {
+            return cleanupPool(pool).finally(function () {
+                return libarka.disconnect();
+            });
+        });
         it('should be consumed', function () {
-            throw new Error('Not implemented yet');
+            expect(consumerSpy).to.have.been.callCount(1);
         });
 
         describe('and pause message is issued on system channel', function () {
+            beforeEach(function () {
+                return libarka.pause();
+            });
             describe('and another message is published', function () {
+                beforeEach(function () {
+                    return connectAsPublisher(pool).then(function (channel) {
+                        return send(channel, 'b');
+                    }).then(function () {
+                            return Promise.delay(100);
+                        });
+                });
                 it('should not consume the message in queue', function () {
-                    throw new Error('Not implemented yet');
+                    expect(consumerSpy).to.have.been.callCount(1);
                 });
                 describe('and resume message is issued on system channel', function () {
+                    beforeEach(function () {
+                        return libarka.resume();
+                    });
                     it('should consume the message', function () {
-                        throw new Error('Not implemented yet');
+                        expect(consumerSpy).to.have.been.callCount(2);
                     });
                 });
 
