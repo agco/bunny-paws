@@ -1,3 +1,5 @@
+'use strict';
+
 var _ = require('lodash');
 var amqplib = require('amqplib');
 var sinon = require('sinon');
@@ -51,15 +53,31 @@ describe('amqplib', function () {
 
     describe('ack', function () {
         var consumerChannel;
-        var pool = {};
+        var pool;
 
         beforeEach(function () {
-            pool = {};
+            pool = { channels: [], connections: []};
+            pool.channelClosed = function (channel) {
+                var indexOf = pool.channels.indexOf(channel);
+                if (indexOf > -1) {
+                    pool.channels.splice(indexOf, 1);
+                }
+            };
             return purge(pool).then(connectAsPublisher).then(function (channel) {
                 return send(channel, 'abc', 'def');
             });
         });
         afterEach(function () {
+            _.forEach(pool.channels, function (item, key) {
+                _.forEach(pool.channels, function (item2, key2) {
+                    if (key === key2) {
+                        return;
+                    }
+                    if (item === item2) {
+                        console.log('found duplicate');
+                    }
+                });
+            });
             return Promise.all(_.map(pool.channels, function (channel) {
                     return channel && channel.close();
                 })).then(function () {
@@ -70,9 +88,8 @@ describe('amqplib', function () {
         });
         describe('when first message is NOT acknowledged', function () {
             var consumerSpy;
-            var callCount;
             beforeEach(function () {
-                callCount = 0;
+                var callCount = 0;
                 consumerSpy = sinon.spy(function (msg) {
                     if (callCount) {
                         consumerChannel.ack(msg);
@@ -88,13 +105,22 @@ describe('amqplib', function () {
                 beforeEach(function () {
                     return consumerChannel.recover();
                 });
-                it.only('should receive all messages', function () {
+                it('should receive all messages', function () {
                     expect(consumerSpy).to.have.been.callCount(3);
                 });
             });
             describe('and consumer closes and another consumer connects', function () {
+                beforeEach(function () {
+                    return consumerChannel.close().then(function () {
+                        pool.channelClosed(consumerChannel);
+                        return  connect(pool).then(function (channel) {
+                            consumerChannel = channel;
+                            return channel.consume(queueName, consumerSpy);
+                        });
+                    });
+                });
                 it('should receive all the messages again', function () {
-                    throw new Error('Not implemented yet');
+                    expect(consumerSpy).to.have.been.callCount(3);
                 });
             });
         });
