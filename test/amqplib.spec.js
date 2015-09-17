@@ -13,7 +13,6 @@ var config = require('./config.js');
 
 var queueName = 'tasks';
 
-
 function connect(pool) {
     return amqplib.connect(config.amqp.url).then(function (connection) {
         pool.connections = pool.connections || [];
@@ -26,16 +25,18 @@ function connect(pool) {
         });
 }
 
-function connectAsPublisher(pool) {
+function connectAsPublisher(pool, alternativeQueueName) {
     return connect(pool).then(function (channel) {
-        channel.assertQueue(queueName);
+        channel.assertQueue(alternativeQueueName || queueName);
         return channel;
     });
 }
 
-function purge(pool) {
+function purge(pool, alternativeQueueName) {
     return connect(pool).then(function (channel) {
-        return channel.purgeQueue(queueName);
+        var name = alternativeQueueName || queueName;
+        channel.assertQueue(name);
+        return channel.purgeQueue(name);
     },function (err) {
         console.error(err);
     }).then(function () {
@@ -43,8 +44,9 @@ function purge(pool) {
         });
 }
 
-function send(channel) {
+function send(channel, queueName) {
     var messages = _.toArray(arguments);
+    messages.shift();
     messages.shift();
     return Promise.all(_.map(messages, function (item) {
         return channel.sendToQueue(queueName, new Buffer(item));
@@ -81,7 +83,7 @@ describe('amqplib', function () {
         beforeEach(function () {
             pool = createPool();
             return purge(pool).then(connectAsPublisher).then(function (channel) {
-                return send(channel, 'abc', 'def');
+                return send(channel, queueName, 'abc', 'def');
             });
         });
         afterEach(function () {
@@ -148,7 +150,7 @@ describe('amqplib', function () {
                     consumerChannelB.ack(msg);
                 });
                 return purge(pool).then(connectAsPublisher).then(function (channel) {
-                    return send(channel, 'a', 'b', 'c', 'd', 'e');
+                    return send(channel, queueName, 'a', 'b', 'c', 'd', 'e');
                 }).then(function () {
                         return  connect(pool);
                     }).then(function (channel) {
@@ -183,7 +185,7 @@ describe('amqplib', function () {
                     callCount++;
                 });
                 return purge(pool).then(connectAsPublisher).then(function (channel) {
-                    return send(channel, 'abc');
+                    return send(channel, queueName, 'abc');
                 }).then(function () {
                         return  connect(pool).then(function (channel) {
                             consumerChannel = channel;
@@ -204,22 +206,38 @@ describe('amqplib', function () {
 describe('libarka', function () {
     describe('when message is published', function () {
         var pool;
-        var consumerSpy;
+        var consumerSpyA;
+        var consumerSpyB;
         var libarka;
+        var queueNameB = 'szazalakacu';
+
         beforeEach(function () {
             pool = createPool();
             return purge(pool).then(connectAsPublisher).then(function (channel) {
-                return send(channel, 'a');
+                return send(channel, queueName, 'a');
             }).then(function () {
-                    consumerSpy = sinon.spy(function (msg) {
+                    return purge(pool, queueNameB).then(function (pool) {
+                        return connectAsPublisher(pool, queueNameB);
+                    });
+                }).then(function (channel) {
+                    send(channel, queueNameB, 'b');
+                }).then(function () {
+                    consumerSpyA = sinon.spy(function (msg) {
+                        if (msg) {
+                            this.ack(msg);
+                        }
+                    });
+                    consumerSpyB = sinon.spy(function (msg) {
                         if (msg) {
                             this.ack(msg);
                         }
                     });
                     libarka = libarkaFactory();
                     return libarka.connect(config.amqp.url).then(function (libarka) {
-                        return libarka.consume(queueName, consumerSpy);
-                    });
+                        return libarka.consume(queueName, consumerSpyA);
+                    }).then(function () {
+                            return libarka.consume(queueNameB, consumerSpyB);
+                        });
                 }).then(function () {
                     return Promise.delay(100);
                 });
@@ -230,30 +248,37 @@ describe('libarka', function () {
             });
         });
         it('should be consumed', function () {
-            expect(consumerSpy).to.have.been.callCount(1);
+            expect(consumerSpyA).to.have.been.callCount(1);
+            expect(consumerSpyB).to.have.been.callCount(1);
         });
 
-        describe('and pause message is issued on system channel', function () {
+        describe('and pause invoked', function () {
             beforeEach(function () {
                 return libarka.pause();
             });
             describe('and another message is published', function () {
                 beforeEach(function () {
                     return connectAsPublisher(pool).then(function (channel) {
-                        return send(channel, 'b');
+                        return send(channel, queueName, 'aa');
                     }).then(function () {
+                            return connectAsPublisher(pool);
+                        }).then(function (channel) {
+                            return send(channel, queueNameB, 'bb');
+                        }).then(function () {
                             return Promise.delay(100);
                         });
                 });
                 it('should not consume the message in queue', function () {
-                    expect(consumerSpy).to.have.been.callCount(1);
+                    expect(consumerSpyA).to.have.been.callCount(1);
+                    expect(consumerSpyB).to.have.been.callCount(1);
                 });
-                describe('and resume message is issued on system channel', function () {
+                describe('and resume invoked', function () {
                     beforeEach(function () {
                         return libarka.resume();
                     });
                     it('should consume the message', function () {
-                        expect(consumerSpy).to.have.been.callCount(2);
+                        expect(consumerSpyA).to.have.been.callCount(2);
+                        expect(consumerSpyB).to.have.been.callCount(2);
                     });
                 });
 
