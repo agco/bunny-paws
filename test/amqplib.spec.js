@@ -284,5 +284,82 @@ describe('libarka', function () {
 
             });
         });
+
+        describe('and pause invoked for queueB', function () {
+            beforeEach(function () {
+                return libarka.pause(queueNameB);
+            });
+
+            describe('and another message is published', function () {
+                beforeEach(function () {
+                    return connectAsPublisher(pool).then(function (channel) {
+                        return send(channel, queueName, 'aa');
+                    }).then(function () {
+                            return connectAsPublisher(pool);
+                        }).then(function (channel) {
+                            return send(channel, queueNameB, 'bb');
+                        }).then(function () {
+                            return Promise.delay(100);
+                        });
+                });
+                it('should consume the message in queue A', function () {
+                    expect(consumerSpyA).to.have.been.callCount(2);
+                });
+                it('should NOT consume the message in queue B', function () {
+                    expect(consumerSpyB).to.have.been.callCount(1);
+                });
+                describe('and resume invoked for queueB', function () {
+                    beforeEach(function () {
+                        return libarka.resume(queueNameB);
+                    });
+                    it('should consume the message', function () {
+                        expect(consumerSpyA).to.have.been.callCount(2);
+                        expect(consumerSpyB).to.have.been.callCount(2);
+                    });
+                });
+                describe('and resume invoked for all queues', function () {
+                    beforeEach(function () {
+                        return libarka.resume();
+                    });
+                    it('should consume the message', function () {
+                        expect(consumerSpyA).to.have.been.callCount(2);
+                        expect(consumerSpyB).to.have.been.callCount(2);
+                    });
+                });
+            });
+        });
+
+        describe('and pause invoked for all queues', function () {
+            beforeEach(function () {
+                return libarka.pause();
+            });
+
+            describe('and another message is published', function () {
+                beforeEach(function () {
+                    return connectAsPublisher(pool).then(function (channel) {
+                        return send(channel, queueName, 'aa');
+                    }).then(function () {
+                            return connectAsPublisher(pool);
+                        }).then(function (channel) {
+                            return send(channel, queueNameB, 'bb');
+                        }).then(function () {
+                            return Promise.delay(100);
+                        });
+                });
+                it('should NOT consume the message', function () {
+                    expect(consumerSpyA).to.have.been.callCount(1);
+                    expect(consumerSpyB).to.have.been.callCount(1);
+                });
+                describe('and resume invoked for all queues', function () {
+                    beforeEach(function () {
+                        return libarka.resume();
+                    });
+                    it('should consume the message', function () {
+                        expect(consumerSpyA).to.have.been.callCount(2);
+                        expect(consumerSpyB).to.have.been.callCount(2);
+                    });
+                });
+            });
+        });
     });
 });
