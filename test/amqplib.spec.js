@@ -362,4 +362,84 @@ describe('libarka', function () {
             });
         });
     });
+
+    describe('whem multiple libarka\'s operating on the same queue', function () {
+        var pool;
+        var libarkaA;
+        var libarkaB;
+        var consumerSpyA;
+        var consumerSpyB;
+        var publishChannel;
+        beforeEach(function () {
+            consumerSpyA = sinon.spy(function (msg) {
+                if (msg) {
+                    this.ack(msg);
+                }
+            });
+            consumerSpyB = sinon.spy(function (msg) {
+                if (msg) {
+                    this.ack(msg);
+                }
+            });
+            pool = createPool();
+            return purge(pool).then(connectAsPublisher).then(function (channel) {
+                publishChannel = channel;
+            }).then(function () {
+                    libarkaA = libarkaFactory();
+                    libarkaB = libarkaFactory();
+                    return libarkaA.connect(config.amqp.url).then(function (libarka) {
+                        return libarka.consume(queueName, consumerSpyA);
+                    });
+                }).then(function () {
+                    return libarkaB.connect(config.amqp.url).then(function (libarka) {
+                        return libarka.consume(queueName, consumerSpyB);
+                    });
+                }).then(function () {
+                    return send(publishChannel, queueName, 'a', 'b');
+                }).then(function () {
+                    return Promise.delay(100);
+                });
+        });
+        afterEach(function () {
+            return cleanupPool(pool).finally(function () {
+                return libarkaA.disconnect().then(function () {
+                    return libarkaB.disconnect();
+                });
+            });
+        });
+        describe('and 2 messages published', function () {
+            it('should be consumed by each libarka\'s listeners', function () {
+                expect(consumerSpyA).to.have.been.callCount(1);
+                expect(consumerSpyB).to.have.been.callCount(1);
+            });
+
+            describe('and pause invoked', function () {
+                beforeEach(function () {
+                    return libarkaA.pause();
+                });
+
+                describe('and subsequent messages published', function () {
+                    beforeEach(function () {
+                        return send(publishChannel, queueName, 'c', 'd');
+                    });
+                    it('should NOT be consumed', function () {
+                        expect(consumerSpyA).to.have.been.callCount(1);
+                        expect(consumerSpyB).to.have.been.callCount(1);
+                    });
+
+                    describe('and resume invoked', function () {
+                        beforeEach(function () {
+                            return libarkaA.resume().then(function () {
+                                return Promise.delay(100);
+                            });
+                        });
+                        it('should consume the messages', function () {
+                            expect(consumerSpyA.callCount + consumerSpyB.callCount).to.equal(4);
+                        });
+                    });
+
+                });
+            });
+        });
+    });
 });
