@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "chai": "^3.2.0",
+    "express": "^4.13.3",
     "lodash": "^3.10.1",
     "mocha": "~1.20.1",
     "sinon": "^1.16.1",
