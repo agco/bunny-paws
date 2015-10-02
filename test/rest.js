@@ -7,3 +7,4 @@ var app = express();
 libarkaModule.registerRoutes(app, config.amqp.httpApiBaseUrl, config.amqp.vhost);
 
 app.listen(config.port);
+console.info('Listening on port', config.port);
