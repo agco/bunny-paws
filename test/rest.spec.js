@@ -90,8 +90,22 @@ describe('rest', function () {
         });
 
         describe('and pause invoked', function () {
+            var pausePromise;
+            var resumePromise;
             beforeEach(function () {
-                return $http.post(makeUrl('/queues/pause'));
+                pausePromise = $http.post(makeUrl('/queues/pause'));
+                return pausePromise;
+            });
+            it('should respond with metrics url in body', function () {
+                return pausePromise.spread(function (res, body) {
+                    body = JSON.parse(body);
+                    expect(body).to.eql({metrics: url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/')});
+                });
+            });
+            it('should respond with metrics url in header', function () {
+                return pausePromise.spread(function (res) {
+                    expect(res.headers.location).to.equal(url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/'));
+                });
             });
             describe('and another message is published', function () {
                 beforeEach(function () {
@@ -111,7 +125,19 @@ describe('rest', function () {
                 });
                 describe('and resume invoked', function () {
                     beforeEach(function () {
-                        return $http.post(makeUrl('/queues/resume'));
+                        resumePromise = $http.post(makeUrl('/queues/resume'));
+                        return resumePromise;
+                    });
+                    it('should respond with metrics url in body', function () {
+                        return resumePromise.spread(function (res, body) {
+                            body = JSON.parse(body);
+                            expect(body).to.eql({metrics: url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/')});
+                        });
+                    });
+                    it('should respond with metrics url in header', function () {
+                        return resumePromise.spread(function (res) {
+                            expect(res.headers.location).to.equal(url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/'));
+                        });
                     });
                     it('should consume the message', function () {
                         expect(consumerSpyA).to.have.been.callCount(2);
@@ -123,10 +149,23 @@ describe('rest', function () {
         });
 
         describe('and pause invoked for queueB', function () {
+            var pausePromise;
+            var resumePromise;
             beforeEach(function () {
-                return $http.post(makeUrl('/queues/' + queueNameB + '/pause'));
+                pausePromise = $http.post(makeUrl('/queues/' + queueNameB + '/pause'));
+                return pausePromise;
             });
-
+            it('should respond with metrics url in body', function () {
+                return pausePromise.spread(function (res, body) {
+                    body = JSON.parse(body);
+                    expect(body).to.eql({metrics: url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/' + queueNameB)});
+                });
+            });
+            it('should respond with metrics url in header', function () {
+                return pausePromise.spread(function (res) {
+                    expect(res.headers.location).to.equal(url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/' + queueNameB));
+                });
+            });
             describe('and another message is published', function () {
                 beforeEach(function () {
                     return queueHelper.connectAsPublisher(pool).then(function (channel) {
@@ -147,7 +186,19 @@ describe('rest', function () {
                 });
                 describe('and resume invoked for queueB', function () {
                     beforeEach(function () {
-                        return $http.post(makeUrl('/queues/' + queueNameB + '/resume'));
+                        resumePromise = $http.post(makeUrl('/queues/' + queueNameB + '/resume'));
+                        return resumePromise;
+                    });
+                    it('should respond with metrics url in body', function () {
+                        return resumePromise.spread(function (res, body) {
+                            body = JSON.parse(body);
+                            expect(body).to.eql({metrics: url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/' + queueNameB)});
+                        });
+                    });
+                    it('should respond with metrics url in header', function () {
+                        return resumePromise.spread(function (res) {
+                            expect(res.headers.location).to.equal(url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/' + queueNameB));
+                        });
                     });
                     it('should consume the message', function () {
                         expect(consumerSpyA).to.have.been.callCount(2);
