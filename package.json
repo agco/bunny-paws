@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "amqplib": "^0.3.2",
-    "bluebird": "^2.10.0"
+    "bluebird": "^2.10.0",
+    "jackrabbit": "git+https://github.com/blabno/jackrabbit.git#e00674e42300717ab3acf6cf26f29e76e62518a3"
   },
   "devDependencies": {
     "chai": "^3.2.0",
