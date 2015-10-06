@@ -1,7 +1,7 @@
 'use strict';
 
 var express = require('express');
-var libarkaModule = require('../lib/index.js');
+var bunnyPawsModule = require('../lib/index.js');
 var config = require('./config.js');
 var sinon = require('sinon');
 var chai = require('chai');
@@ -15,7 +15,7 @@ describe('rest', function () {
 
     var app;
     var server;
-    var libarka;
+    var bunnyPaws;
     var baseUrl;
 
     function makeUrl(href) {
@@ -27,12 +27,12 @@ describe('rest', function () {
         server = app.listen(config.port);
         baseUrl = 'http://localhost:' + config.port + '/api';
         console.log('Listening on port', config.port);
-        return libarkaModule.registerRoutes(app, config.amqp.url, baseUrl, config.amqp.httpApiBaseUrl, config.amqp.vhost);
+        return bunnyPawsModule.registerRoutes(app, config.amqp.url, baseUrl, config.amqp.httpApiBaseUrl, config.amqp.vhost);
     });
 
     after(function () {
         server.close();
-        return libarka.disconnect();
+        return bunnyPaws.disconnect();
     });
 
     describe('when message is published', function () {
@@ -92,12 +92,12 @@ describe('rest', function () {
                 consumerSpyB = sinon.spy(function (data, ack) {
                     ack();
                 });
-                libarka = new libarkaModule.Libarka(config.amqp.url);
+                bunnyPaws = new bunnyPawsModule.newInstance(config.amqp.url);
                 consumingRabbit = jackrabbit(config.amqp.url);
                 var queueA = consumingRabbit.default().queue({ name: queueNameA });
                 var queueB = consumingRabbit.default().queue({ name: queueNameB });
-                libarka.addPauseResume(queueA.consume(consumerSpyA));
-                libarka.addPauseResume(queueB.consume(consumerSpyB));
+                bunnyPaws.addPauseResume(queueA.consume(consumerSpyA));
+                bunnyPaws.addPauseResume(queueB.consume(consumerSpyB));
 
 
                 return Promise.delay(500);
@@ -130,7 +130,7 @@ describe('rest', function () {
                         }
                     });
                 }).then(function () {
-                    return libarka.disconnect();
+                    return bunnyPaws.disconnect();
                 });
         });
 

@@ -1,7 +1,32 @@
 {
-  "name": "amqp-experiments",
-  "version": "0.0.0",
-  "license": "MIT",
+  "name": "bunny-paws",
+  "version": "0.0.1",
+  "description": "Pause and resume RabbitMQ consumers created with jackrabbit.",
+  "main": "lib/index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "bluebird": "^2.10.0",
+    "jackrabbit": "git+https://github.com/blabno/jackrabbit.git#66e4c59",
+    "lodash": "^3.10.1",
+    "request": "^2.64.0"
+  },
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "express": "^4.13.3",
+    "http-as-promised": "^1.1.0",
+    "mocha": "~1.20.1",
+    "sinon": "^1.16.1",
+    "sinon-chai": "^2.8.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agco/bunny-paws.git"
+  },
   "author": {
     "name": "Kristof Sajdak",
     "email": "kristof.sajdak@gmail.com"
@@ -12,28 +37,9 @@
       "email": "bernard.labno@pjwstk.edu.pl"
     }
   ],
-  "homepage": "",
-  "private": true,
-  "main": "lib/",
-  "scripts": {
-    "test": "mocha"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/agco/bunny-paws/issues"
   },
-  "dependencies": {
-    "amqplib": "^0.3.2",
-    "bluebird": "^2.10.0",
-    "jackrabbit": "git+https://github.com/blabno/jackrabbit.git#8ca001fcfa50cac6c5ab84ba82064398493dc9f1",
-    "request": "^2.64.0"
-  },
-  "devDependencies": {
-    "chai": "^3.2.0",
-    "express": "^4.13.3",
-    "http-as-promised": "^1.1.0",
-    "lodash": "^3.10.1",
-    "mocha": "~1.20.1",
-    "sinon": "^1.16.1",
-    "sinon-chai": "^2.8.0"
-  },
-  "engines": {
-    "node": ">=0.10"
-  }
+  "homepage": "https://github.com/agco/bunny-paws"
 }

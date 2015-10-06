@@ -6,16 +6,16 @@ var expect = chai.expect;
 var Promise = require('bluebird');
 chai.use(require('sinon-chai'));
 var jackrabbit = require('jackrabbit');
-var Libarka = require('../lib/libarka.js');
+var BunnyPaws = require('../lib/bunnyPaws.js');
 
 var config = require('./config.js');
 
 
-describe('libarka', function () {
+describe('BunnyPaws', function () {
     describe('when message is published', function () {
         var consumerSpyA;
         var consumerSpyB;
-        var libarka;
+        var bunnyPaws;
         var queueNameA = 'tasks';
         var queueNameB = 'szazalakacu';
         var publishingRabbit;
@@ -68,12 +68,12 @@ describe('libarka', function () {
                 consumerSpyB = sinon.spy(function (data, ack) {
                     ack();
                 });
-                libarka = new Libarka(config.amqp.url);
+                bunnyPaws = new BunnyPaws(config.amqp.url);
                 consumingRabbit = jackrabbit(config.amqp.url);
                 var queueA = consumingRabbit.default().queue({ name: queueNameA });
                 var queueB = consumingRabbit.default().queue({ name: queueNameB });
-                libarka.addPauseResume(queueA.consume(consumerSpyA));
-                libarka.addPauseResume(queueB.consume(consumerSpyB));
+                bunnyPaws.addPauseResume(queueA.consume(consumerSpyA));
+                bunnyPaws.addPauseResume(queueB.consume(consumerSpyB));
 
                 return Promise.delay(500);
             });
@@ -105,7 +105,7 @@ describe('libarka', function () {
                         }
                     });
                 }).then(function () {
-                    return libarka.disconnect();
+                    return bunnyPaws.disconnect();
                 });
         });
 
@@ -116,7 +116,7 @@ describe('libarka', function () {
 
         describe('and pause invoked', function () {
             beforeEach(function () {
-                return libarka.pause().then(function () {
+                return bunnyPaws.pause().then(function () {
                     return Promise.delay(500);
                 });
             });
@@ -134,7 +134,7 @@ describe('libarka', function () {
                 });
                 describe('and resume invoked', function () {
                     beforeEach(function () {
-                        return libarka.resume().then(function () {
+                        return bunnyPaws.resume().then(function () {
                             return Promise.delay(100);
                         });
                     });
@@ -149,7 +149,7 @@ describe('libarka', function () {
 
         describe('and pause invoked for queueB', function () {
             beforeEach(function () {
-                return libarka.pause(queueNameB);
+                return bunnyPaws.pause(queueNameB);
             });
 
             describe('and another message is published', function () {
@@ -168,7 +168,7 @@ describe('libarka', function () {
                 });
                 describe('and resume invoked for queueB', function () {
                     beforeEach(function () {
-                        return libarka.resume(queueNameB).then(function () {
+                        return bunnyPaws.resume(queueNameB).then(function () {
                             return Promise.delay(100);
                         });
                     });
@@ -179,7 +179,7 @@ describe('libarka', function () {
                 });
                 describe('and resume invoked for all queues', function () {
                     beforeEach(function () {
-                        return libarka.resume().then(function () {
+                        return bunnyPaws.resume().then(function () {
                             return Promise.delay(100);
                         });
                     });
@@ -193,7 +193,7 @@ describe('libarka', function () {
 
         describe('and pause invoked for all queues', function () {
             beforeEach(function () {
-                return libarka.pause().then(function () {
+                return bunnyPaws.pause().then(function () {
                     return Promise.delay(100);
                 });
             });
@@ -211,7 +211,7 @@ describe('libarka', function () {
                 });
                 describe('and resume invoked for all queues', function () {
                     beforeEach(function () {
-                        return libarka.resume().then(function () {
+                        return bunnyPaws.resume().then(function () {
                             return Promise.delay(100);
                         });
                     });
