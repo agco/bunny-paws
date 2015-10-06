@@ -95,9 +95,9 @@ describe('rest', function () {
                 libarka = new libarkaModule.Libarka(config.amqp.url);
                 consumingRabbit = jackrabbit(config.amqp.url);
                 var queueA = consumingRabbit.default().queue({ name: queueNameA });
-                libarka.addPauseResume(queueA).consume(consumerSpyA);
                 var queueB = consumingRabbit.default().queue({ name: queueNameB });
-                libarka.addPauseResume(queueB).consume(consumerSpyB);
+                libarka.addPauseResume(queueA.consume(consumerSpyA));
+                libarka.addPauseResume(queueB.consume(consumerSpyB));
 
 
                 return Promise.delay(500);
