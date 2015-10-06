@@ -10,7 +10,6 @@ var expect = chai.expect;
 var Promise = require('bluebird');
 var jackrabbit = require('jackrabbit');
 var $http = require('http-as-promised');
-var url = require('url');
 
 describe('rest', function () {
 
@@ -20,15 +19,15 @@ describe('rest', function () {
     var baseUrl;
 
     function makeUrl(href) {
-        return url.resolve(baseUrl, href);
+        return baseUrl + href;
     }
 
     before(function () {
         app = express();
         server = app.listen(config.port);
-        baseUrl = 'http://localhost:' + config.port;
+        baseUrl = 'http://localhost:' + config.port + '/api';
         console.log('Listening on port', config.port);
-        return libarkaModule.registerRoutes(app, config.amqp.url, config.amqp.httpApiBaseUrl, config.amqp.vhost);
+        return libarkaModule.registerRoutes(app, config.amqp.url, baseUrl, config.amqp.httpApiBaseUrl, config.amqp.vhost);
     });
 
     after(function () {
@@ -100,6 +99,7 @@ describe('rest', function () {
                 var queueB = consumingRabbit.default().queue({ name: queueNameB });
                 libarka.addPauseResume(queueB).consume(consumerSpyB);
 
+
                 return Promise.delay(500);
             });
         });
@@ -151,12 +151,12 @@ describe('rest', function () {
             it('should respond with metrics url in body', function () {
                 return pausePromise.spread(function (res, body) {
                     body = JSON.parse(body);
-                    expect(body).to.eql({metrics: url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/')});
+                    expect(body).to.eql({metrics: makeUrl('/queues/%2F/')});
                 });
             });
             it('should respond with metrics url in header', function () {
                 return pausePromise.spread(function (res) {
-                    expect(res.headers.location).to.equal(url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/'));
+                    expect(res.headers.location).to.equal(makeUrl('/queues/%2F/'));
                 });
             });
             describe('and another message is published', function () {
@@ -181,12 +181,12 @@ describe('rest', function () {
                     it('should respond with metrics url in body', function () {
                         return resumePromise.spread(function (res, body) {
                             body = JSON.parse(body);
-                            expect(body).to.eql({metrics: url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/')});
+                            expect(body).to.eql({metrics: makeUrl('/queues/%2F/')});
                         });
                     });
                     it('should respond with metrics url in header', function () {
                         return resumePromise.spread(function (res) {
-                            expect(res.headers.location).to.equal(url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/'));
+                            expect(res.headers.location).to.equal(makeUrl('/queues/%2F/'));
                         });
                     });
                     it('should consume the message', function () {
@@ -210,12 +210,12 @@ describe('rest', function () {
             it('should respond with metrics url in body', function () {
                 return pausePromise.spread(function (res, body) {
                     body = JSON.parse(body);
-                    expect(body).to.eql({metrics: url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/' + queueNameB)});
+                    expect(body).to.eql({metrics: makeUrl('/queues/%2F/' + queueNameB)});
                 });
             });
             it('should respond with metrics url in header', function () {
                 return pausePromise.spread(function (res) {
-                    expect(res.headers.location).to.equal(url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/' + queueNameB));
+                    expect(res.headers.location).to.equal(makeUrl('/queues/%2F/' + queueNameB));
                 });
             });
             describe('and another message is published', function () {
@@ -242,12 +242,12 @@ describe('rest', function () {
                     it('should respond with metrics url in body', function () {
                         return resumePromise.spread(function (res, body) {
                             body = JSON.parse(body);
-                            expect(body).to.eql({metrics: url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/' + queueNameB)});
+                            expect(body).to.eql({metrics: makeUrl('/queues/%2F/' + queueNameB)});
                         });
                     });
                     it('should respond with metrics url in header', function () {
                         return resumePromise.spread(function (res) {
-                            expect(res.headers.location).to.equal(url.resolve(config.amqp.httpApiBaseUrl, '/api/queues/%2F/' + queueNameB));
+                            expect(res.headers.location).to.equal(makeUrl('/queues/%2F/' + queueNameB));
                         });
                     });
                     it('should consume the message', function () {
