@@ -1,6 +1,6 @@
 {
   "name": "bunny-paws",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Pause and resume RabbitMQ consumers created with jackrabbit.",
   "main": "lib/index.js",
   "directories": {
