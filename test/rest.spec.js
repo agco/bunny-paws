@@ -11,11 +11,12 @@ var Promise = require('bluebird');
 var jackrabbit = require('jackrabbit');
 var $http = require('http-as-promised');
 
-describe('rest', function () {
+describe('BunnyPaws registerRoutes', function () {
 
     var app;
     var server;
     var bunnyPaws;
+    var restBunnyPaws;
     var baseUrl;
 
     function makeUrl(href) {
@@ -27,12 +28,16 @@ describe('rest', function () {
         server = app.listen(config.port);
         baseUrl = 'http://localhost:' + config.port + '/api';
         console.log('Listening on port', config.port);
-        return bunnyPawsModule.registerRoutes(app, config.amqp.url, baseUrl, config.amqp.httpApiBaseUrl, config.amqp.vhost);
+        return bunnyPawsModule.registerRoutes(app, baseUrl, config.amqp.url, config.amqp.httpApiPort).then(function (result) {
+            restBunnyPaws = result;
+        });
     });
 
     after(function () {
         server.close();
-        return bunnyPaws.disconnect();
+        return bunnyPaws.disconnect().then(function () {
+            return restBunnyPaws.disconnect();
+        });
     });
 
     describe('when message is published', function () {
@@ -151,12 +156,21 @@ describe('rest', function () {
             it('should respond with metrics url in body', function () {
                 return pausePromise.spread(function (res, body) {
                     body = JSON.parse(body);
-                    expect(body).to.eql({metrics: makeUrl('/queues/%2F/')});
+                    expect(body).to.eql({metrics: makeUrl('/queues/')});
                 });
             });
             it('should respond with metrics url in header', function () {
                 return pausePromise.spread(function (res) {
-                    expect(res.headers.location).to.equal(makeUrl('/queues/%2F/'));
+                    expect(res.headers.location).to.equal(makeUrl('/queues/'));
+                });
+            });
+            it('should be able to get metrics from provided url', function () {
+                return pausePromise.spread(function (res) {
+                    return $http.get(res.headers.location).spread(function (res, body) {
+                        body = JSON.parse(body);
+                        expect(body).to.have.length.above(0);
+                        expect(body[0]).to.have.property('messages');
+                    });
                 });
             });
             describe('and another message is published', function () {
@@ -181,12 +195,21 @@ describe('rest', function () {
                     it('should respond with metrics url in body', function () {
                         return resumePromise.spread(function (res, body) {
                             body = JSON.parse(body);
-                            expect(body).to.eql({metrics: makeUrl('/queues/%2F/')});
+                            expect(body).to.eql({metrics: makeUrl('/queues/')});
                         });
                     });
                     it('should respond with metrics url in header', function () {
                         return resumePromise.spread(function (res) {
-                            expect(res.headers.location).to.equal(makeUrl('/queues/%2F/'));
+                            expect(res.headers.location).to.equal(makeUrl('/queues/'));
+                        });
+                    });
+                    it('should be able to get metrics from provided url', function () {
+                        return resumePromise.spread(function (res) {
+                            return $http.get(res.headers.location).spread(function (res, body) {
+                                body = JSON.parse(body);
+                                expect(body).to.have.length.above(0);
+                                expect(body[0]).to.have.property('messages');
+                            });
                         });
                     });
                     it('should consume the message', function () {
@@ -210,12 +233,21 @@ describe('rest', function () {
             it('should respond with metrics url in body', function () {
                 return pausePromise.spread(function (res, body) {
                     body = JSON.parse(body);
-                    expect(body).to.eql({metrics: makeUrl('/queues/%2F/' + queueNameB)});
+                    expect(body).to.eql({metrics: makeUrl('/queues/' + queueNameB)});
                 });
             });
             it('should respond with metrics url in header', function () {
                 return pausePromise.spread(function (res) {
-                    expect(res.headers.location).to.equal(makeUrl('/queues/%2F/' + queueNameB));
+                    expect(res.headers.location).to.equal(makeUrl('/queues/' + queueNameB));
+                });
+            });
+            it('should be able to get metrics from provided url', function () {
+                return pausePromise.spread(function (res) {
+                    return $http.get(res.headers.location).spread(function (res, body) {
+                        body = JSON.parse(body);
+                        expect(body).to.have.property('messages');
+                        expect(body).to.have.property('name', queueNameB);
+                    });
                 });
             });
             describe('and another message is published', function () {
@@ -242,12 +274,21 @@ describe('rest', function () {
                     it('should respond with metrics url in body', function () {
                         return resumePromise.spread(function (res, body) {
                             body = JSON.parse(body);
-                            expect(body).to.eql({metrics: makeUrl('/queues/%2F/' + queueNameB)});
+                            expect(body).to.eql({metrics: makeUrl('/queues/' + queueNameB)});
                         });
                     });
                     it('should respond with metrics url in header', function () {
                         return resumePromise.spread(function (res) {
-                            expect(res.headers.location).to.equal(makeUrl('/queues/%2F/' + queueNameB));
+                            expect(res.headers.location).to.equal(makeUrl('/queues/' + queueNameB));
+                        });
+                    });
+                    it('should be able to get metrics from provided url', function () {
+                        return resumePromise.spread(function (res) {
+                            return $http.get(res.headers.location).spread(function (res, body) {
+                                body = JSON.parse(body);
+                                expect(body).to.have.property('messages');
+                                expect(body).to.have.property('name', queueNameB);
+                            });
                         });
                     });
                     it('should consume the message', function () {
@@ -260,6 +301,15 @@ describe('rest', function () {
                         resumePromise = $http.post(makeUrl('/queues/resume'));
                         return pausePromise.then(function () {
                             return Promise.delay(100);
+                        });
+                    });
+                    it('should be able to get metrics from provided url', function () {
+                        return resumePromise.spread(function (res) {
+                            return $http.get(res.headers.location).spread(function (res, body) {
+                                body = JSON.parse(body);
+                                expect(body).to.have.length.above(0);
+                                expect(body[0]).to.have.property('messages');
+                            });
                         });
                     });
                     it('should consume the message', function () {

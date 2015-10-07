@@ -1,8 +1,7 @@
 module.exports = {
     amqp: {
-        httpApiBaseUrl: 'http://guest:guest@localhost:15672/api',
-        url: 'amqp://localhost:5672',
-        vhost: '/'
+        httpApiPort: 15672,
+        url: 'amqp://guest:guest@localhost:5672'
     },
     port: 9000
 };

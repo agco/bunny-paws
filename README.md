@@ -15,7 +15,7 @@ BunnPaws let's you quickly add routes to your express app to control each queue 
     app = express();
     server = app.listen(config.port);
     baseUrl = 'http://localhost:' + config.port + '/api';
-    bunnyPawsModule.registerRoutes(app, config.amqp.url, baseUrl, config.amqp.httpApiBaseUrl, config.amqp.vhost);
+    bunnyPawsModule.registerRoutes(app, baseUrl, connectionUrl, [amqpHttpApiPort], [amqpHttpApiProtocol]);
 
 now you can pause/resume specific queue:
 
